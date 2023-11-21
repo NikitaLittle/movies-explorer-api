@@ -36,7 +36,7 @@ const validation = {
       image: Joi.string().required().pattern(linkRegex),
       trailerLink: Joi.string().required().pattern(linkRegex),
       thumbnail: Joi.string().required().pattern(linkRegex),
-      movieId: Joi.number(),
+      movieId: Joi.number().required(),
       nameRU: Joi.string().required(),
       nameEU: Joi.string().required(),
     }),
@@ -44,7 +44,7 @@ const validation = {
 
   deleteMovieValidation: celebrate({
     params: Joi.object().keys({
-      _id: Joi.string().hex().required(),
+      _id: Joi.string().hex().required().length(24),
     }),
   }),
 };

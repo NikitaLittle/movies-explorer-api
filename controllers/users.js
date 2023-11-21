@@ -16,7 +16,13 @@ const getUserInfo = (req, res, next) => {
     .then((user) => {
       res.status(ok).send(user);
     })
-    .catch(next);
+    .catch((err) => {
+      if (err instanceof mongoose.Document.DocumentNotFoundError) {
+        next(new NotFound('Пользователь с указанным _id не найден.'));
+      } else {
+        next(err);
+      }
+    });
 };
 
 const updateUserInfo = (req, res, next) => {
@@ -29,8 +35,10 @@ const updateUserInfo = (req, res, next) => {
       res.status(ok).send(user);
     })
     .catch((err) => {
-      if (err instanceof mongoose.Error.ValidationError) {
-        next(new BadRequest(err.message));
+      if (err.code === 11000) {
+        next(new Conflict('Переданы некорректные данные в методы обновления данных пользователя'));
+      } else if (err instanceof mongoose.Error.ValidationError) {
+        next(new BadRequest('Переданы некорректные данные в методы обновления данных пользователя'));
       } else if (err instanceof mongoose.Error.DocumentNotFoundError) {
         next(new NotFound('Пользователь с указанным _id не найден.'));
       } else {
@@ -57,7 +65,7 @@ const register = (req, res, next) => {
         if (err.code === 11000) {
           next(new Conflict('Переданы некорректные данные в методы создания пользователя'));
         } else if (err instanceof mongoose.Error.ValidationError) {
-          next(new BadRequest(err.message));
+          next(new BadRequest('Переданы некорректные данные в методы создания пользователя'));
         } else {
           next(err);
         }
@@ -76,7 +84,7 @@ const login = (req, res, next) => {
     })
     .catch((err) => {
       if (err instanceof mongoose.Error.ValidationError) {
-        next(new BadRequest(err.message));
+        next(new BadRequest('Переданы некорректные данные в методы входа в аккаунт'));
       } else {
         next(err);
       }

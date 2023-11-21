@@ -6,11 +6,19 @@ import NotFound from '../errors/NotFound.js';
 import { ok, created, noContent } from '../utils/constants.js';
 
 const getMovies = (req, res, next) => {
-  Movie.find({})
+  const { _id } = req.user;
+
+  Movie.find({ owner: _id })
     .then((movies) => {
       res.status(ok).send(movies);
     })
-    .catch(next);
+    .catch((err) => {
+      if (err instanceof mongoose.Document.DocumentNotFoundError) {
+        next(new NotFound('Фильм с указанным _id не найден.'));
+      } else {
+        next(err);
+      }
+    });
 };
 
 const createMovie = (req, res, next) => {
@@ -48,7 +56,7 @@ const createMovie = (req, res, next) => {
     })
     .catch((err) => {
       if (err instanceof mongoose.Error.ValidationError) {
-        next(new NotFound(err.message));
+        next(new BadRequest('Переданы некорректные данные в методы создания фильма.'));
       } else {
         next(err);
       }
@@ -62,21 +70,23 @@ const deleteMovie = (req, res, next) => {
   Movie.findById(_id)
     .then((movie) => {
       if (!movie.owner.equals(user._id)) {
-        throw new Forbidden('Карточка не ваша.');
+        throw new Forbidden('Фильм не ваш.');
       }
 
       Movie.deleteOne(movie._id)
         .orFail()
         .then(() => {
-          res.status(noContent).send({ message: 'Фильм удален.' });
+          res.status(noContent).send('Фильм удален.');
         })
         .catch(next);
     })
     .catch((err) => {
-      if (err instanceof mongoose.Error.CastError) {
-        next(new BadRequest('Переданы некорректные данные для удаления карточки.'));
+      if (err instanceof mongoose.Error.ValidationError) {
+        next(new BadRequest('Переданы некорректные данные в методы удаления фильма.'));
       } else if (err instanceof mongoose.Error.DocumentNotFoundError) {
-        next(new NotFound('Карточка с указанным _id не найдена.'));
+        next(new NotFound('Фильм с указанным _id не найден.'));
+      } else if (err instanceof mongoose.Error.CastError) {
+        next(new BadRequest('Переданы некорректные данные в методы удаления фильма.'));
       } else {
         next(err);
       }
